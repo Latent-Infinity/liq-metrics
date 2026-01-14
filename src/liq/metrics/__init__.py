@@ -11,6 +11,14 @@ Functions:
 
 from liq.metrics.drift import summarize_drift
 from liq.metrics.labels import summarize_labels
+from liq.metrics.prediction import summarize_classification, summarize_regression
 from liq.metrics.qa import QAResultLike, summarize_qa
 
-__all__ = ["summarize_qa", "summarize_drift", "summarize_labels", "QAResultLike"]
+__all__ = [
+    "summarize_qa",
+    "summarize_drift",
+    "summarize_labels",
+    "summarize_classification",
+    "summarize_regression",
+    "QAResultLike",
+]

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 
 @runtime_checkable
@@ -53,7 +53,7 @@ def summarize_qa(qa_result: QAResultLike | dict[str, Any] | None) -> dict[str, f
 
     # Handle dict input directly
     if isinstance(qa_result, dict):
-        return qa_result
+        return cast(dict[str, int | float], qa_result)
 
     # Handle dataclass objects
     if is_dataclass(qa_result) and not isinstance(qa_result, type):

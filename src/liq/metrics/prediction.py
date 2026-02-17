@@ -5,7 +5,6 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Any
 
 
 def summarize_classification(y_true: Iterable[int], y_pred: Iterable[int]) -> dict[str, float]:
@@ -26,13 +25,13 @@ def summarize_classification(y_true: Iterable[int], y_pred: Iterable[int]) -> di
     if not true_list:
         return {"count": 0.0, "accuracy": 0.0, "macro_f1": 0.0}
 
-    for idx, (yt, yp) in enumerate(zip(true_list, pred_list)):
+    for idx, (yt, yp) in enumerate(zip(true_list, pred_list, strict=False)):
         if not isinstance(yt, int) or isinstance(yt, bool):
             raise TypeError(f"y_true must be int labels, got {type(yt).__name__} at {idx}")
         if not isinstance(yp, int) or isinstance(yp, bool):
             raise TypeError(f"y_pred must be int labels, got {type(yp).__name__} at {idx}")
 
-    correct = sum(1 for yt, yp in zip(true_list, pred_list) if yt == yp)
+    correct = sum(1 for yt, yp in zip(true_list, pred_list, strict=False) if yt == yp)
     accuracy = correct / len(true_list)
 
     labels = sorted(set(true_list) | set(pred_list))
@@ -40,7 +39,7 @@ def summarize_classification(y_true: Iterable[int], y_pred: Iterable[int]) -> di
     fp = defaultdict(int)
     fn = defaultdict(int)
 
-    for yt, yp in zip(true_list, pred_list):
+    for yt, yp in zip(true_list, pred_list, strict=False):
         if yt == yp:
             tp[yt] += 1
         else:
@@ -54,10 +53,7 @@ def summarize_classification(y_true: Iterable[int], y_pred: Iterable[int]) -> di
         fn_val = fn[label]
         precision = tp_val / (tp_val + fp_val) if (tp_val + fp_val) > 0 else 0.0
         recall = tp_val / (tp_val + fn_val) if (tp_val + fn_val) > 0 else 0.0
-        if precision + recall == 0:
-            f1 = 0.0
-        else:
-            f1 = 2 * precision * recall / (precision + recall)
+        f1 = 0.0 if precision + recall == 0 else 2 * precision * recall / (precision + recall)
         f1_sum += f1
 
     macro_f1 = f1_sum / len(labels) if labels else 0.0
@@ -94,7 +90,7 @@ def summarize_regression(
     if not true_list:
         return {"count": 0.0, "corr": 0.0, "nll": 0.0}
 
-    for idx, (yt, yp) in enumerate(zip(true_list, pred_list)):
+    for idx, (yt, yp) in enumerate(zip(true_list, pred_list, strict=False)):
         if isinstance(yt, bool) or isinstance(yp, bool):
             raise TypeError("y_true and y_pred must be numeric")
         if not isinstance(yt, (int, float)):
@@ -134,7 +130,7 @@ def _pearson_corr(x: list[float], y: list[float]) -> float:
         return 0.0
     mean_x = math.fsum(x) / len(x)
     mean_y = math.fsum(y) / len(y)
-    cov = math.fsum((xi - mean_x) * (yi - mean_y) for xi, yi in zip(x, y))
+    cov = math.fsum((xi - mean_x) * (yi - mean_y) for xi, yi in zip(x, y, strict=False))
     var_x = math.fsum((xi - mean_x) ** 2 for xi in x)
     var_y = math.fsum((yi - mean_y) ** 2 for yi in y)
     denom = math.sqrt(var_x * var_y)
@@ -145,7 +141,7 @@ def _pearson_corr(x: list[float], y: list[float]) -> float:
 
 def _gaussian_nll(x: list[float], mean: list[float], log_var: list[float]) -> float:
     total = 0.0
-    for xt, mu, lv in zip(x, mean, log_var):
+    for xt, mu, lv in zip(x, mean, log_var, strict=False):
         var = math.exp(lv)
         total += 0.5 * (lv + ((xt - mu) ** 2) / var + math.log(2 * math.pi))
     return total / len(x)
@@ -158,7 +154,7 @@ def _coverage(
     sigma: int,
 ) -> float:
     count = 0
-    for xt, mu, lv in zip(x, mean, log_var):
+    for xt, mu, lv in zip(x, mean, log_var, strict=False):
         std = math.exp(0.5 * lv)
         if abs(xt - mu) <= sigma * std:
             count += 1

@@ -92,18 +92,18 @@ class TestSummarizeLabels:
     def test_summarize_labels_invalid_type_raises_type_error(self) -> None:
         """Test labels raises TypeError for non-integer values."""
         with pytest.raises(TypeError, match="must be integers"):
-            summarize_labels([0.5, 1.5])  # type: ignore[list-item]
+            summarize_labels([0.5, 1.5])
 
         with pytest.raises(TypeError, match="must be integers"):
-            summarize_labels([1, "invalid", 0])  # type: ignore[list-item]
+            summarize_labels([1, "invalid", 0])
 
         with pytest.raises(TypeError, match="must be integers"):
-            summarize_labels([None])  # type: ignore[list-item]
+            summarize_labels([None])
 
     def test_summarize_labels_bool_raises_type_error(self) -> None:
         """Test labels raises TypeError for boolean values (despite being int subclass)."""
         with pytest.raises(TypeError, match="must be integers"):
-            summarize_labels([True, False])  # type: ignore[list-item]
+            summarize_labels([True, False])
 
     def test_summarize_labels_returns_dict_with_correct_keys(self) -> None:
         """Test that returned dict always has all three keys."""

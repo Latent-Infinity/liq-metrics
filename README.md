@@ -5,12 +5,12 @@ Performance metrics and evaluation utilities for the LIQ Stack ecosystem.
 ## Installation
 
 ```bash
-pip install liq-metrics
+uv pip install liq-metrics
 ```
 
 For development:
 ```bash
-pip install liq-metrics[dev]
+uv pip install liq-metrics[dev]
 ```
 
 ## Overview
@@ -140,7 +140,7 @@ def process_qa(result: QAResultLike) -> None:
 
 ```bash
 # Install dev dependencies
-pip install -e ".[dev]"
+uv pip install -e ".[dev]"
 
 # Run tests
 pytest

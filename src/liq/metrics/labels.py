@@ -30,9 +30,7 @@ def summarize_labels(labels: Iterable[int]) -> dict[str, int]:
 
     for i, lbl in enumerate(labels):
         if not isinstance(lbl, int) or isinstance(lbl, bool):
-            raise TypeError(
-                f"All labels must be integers, got {type(lbl).__name__} at index {i}"
-            )
+            raise TypeError(f"All labels must be integers, got {type(lbl).__name__} at index {i}")
 
         if lbl > 0:
             counts["positive"] += 1

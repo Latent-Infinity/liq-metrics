@@ -19,6 +19,7 @@ from liq.metrics.performance import (
 )
 from liq.metrics.prediction import summarize_classification, summarize_regression
 from liq.metrics.qa import QAResultLike, summarize_qa
+from liq.metrics.six_curves import SixCurveInputs, SixCurveResult, compute_six_curves
 from liq.metrics.tax_curves import (
     CurveFPeriod,
     CurveFResult,
@@ -45,6 +46,9 @@ __all__ = [
     "PerformanceAnalyzer",
     "PerformanceReport",
     "RegimeMetrics",
+    "SixCurveInputs",
+    "SixCurveResult",
+    "compute_six_curves",
     "TaxRates",
     "TaxPolicy",
     "RealizedTaxEvent",

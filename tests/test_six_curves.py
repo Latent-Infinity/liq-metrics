@@ -27,15 +27,15 @@ ZERO_POLICY = TaxPolicy(rates=TaxRates.zero())
 
 
 def _inputs(**overrides) -> SixCurveInputs:
-    base = dict(
-        dates=DATES,
-        starting_capital=D("50000"),
-        baseline_returns=(D("0.01"), D("-0.02"), D("0.03")),
-        overlay_returns=(D("0.02"), D("0.01"), D("-0.01")),
-        sleeve_weight=D("0.2"),
-        measured_costs=(D("0.0005"), D("0.0005"), D("0.0005")),
-        tax_policy=ZERO_POLICY,
-    )
+    base = {
+        "dates": DATES,
+        "starting_capital": D("50000"),
+        "baseline_returns": (D("0.01"), D("-0.02"), D("0.03")),
+        "overlay_returns": (D("0.02"), D("0.01"), D("-0.01")),
+        "sleeve_weight": D("0.2"),
+        "measured_costs": (D("0.0005"), D("0.0005"), D("0.0005")),
+        "tax_policy": ZERO_POLICY,
+    }
     base.update(overrides)
     return SixCurveInputs(**base)
 
@@ -146,6 +146,17 @@ class TestValidation:
     def test_mismatched_series_lengths_raise(self) -> None:
         with pytest.raises(ValueError, match="identical dates"):
             compute_six_curves(_inputs(measured_costs=(D("0"),)))
+
+    def test_empty_dates_raise_domain_error(self) -> None:
+        with pytest.raises(ValueError, match="at least one date"):
+            compute_six_curves(
+                _inputs(
+                    dates=(),
+                    baseline_returns=(),
+                    overlay_returns=(),
+                    measured_costs=(),
+                )
+            )
 
     def test_negative_sleeve_weight_raises(self) -> None:
         with pytest.raises(ValueError, match="sleeve_weight"):

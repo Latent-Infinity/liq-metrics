@@ -81,6 +81,8 @@ def _compound(start: Decimal, returns: tuple[Decimal, ...]) -> tuple[Decimal, ..
 
 def _validate(inputs: SixCurveInputs) -> tuple[Decimal, ...]:
     n = len(inputs.dates)
+    if n == 0:
+        raise ValueError("six-curve inputs require at least one date")
     financing = inputs.financing_rates or (Decimal("0"),) * n
     series = {
         "baseline_returns": inputs.baseline_returns,

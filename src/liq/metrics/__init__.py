@@ -11,6 +11,13 @@ Functions:
 
 from liq.metrics.drift import summarize_drift
 from liq.metrics.labels import summarize_labels
+from liq.metrics.panel import (
+    METRICS_PANEL_FIELDS,
+    InferenceInputs,
+    MetricsPanel,
+    compute_metrics_panel,
+    write_metrics_panel_csv,
+)
 from liq.metrics.performance import (
     ComparisonResult,
     PerformanceAnalyzer,
@@ -36,6 +43,11 @@ from liq.metrics.tax_curves import (
 )
 
 __all__ = [
+    "MetricsPanel",
+    "InferenceInputs",
+    "METRICS_PANEL_FIELDS",
+    "compute_metrics_panel",
+    "write_metrics_panel_csv",
     "summarize_qa",
     "summarize_drift",
     "summarize_labels",

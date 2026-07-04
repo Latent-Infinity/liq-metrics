@@ -90,6 +90,29 @@ counts = summarize_labels(labels)
 # {'positive': 3, 'negative': 2, 'neutral': 2}
 ```
 
+## Research metrics panel
+
+Every research run reports one shared panel written to `metrics_panel.csv`
+(long format `field,value`; every field is emitted even when unavailable):
+
+```python
+from liq.metrics import InferenceInputs, compute_metrics_panel, write_metrics_panel_csv
+
+panel = compute_metrics_panel(
+    trade_returns_net=net_trades,
+    trade_returns_gross=gross_trades,
+    daily_returns=daily,
+    benchmark_daily_returns=spy_daily,          # raw AND residualized reporting
+    inference=InferenceInputs(deflated_sharpe=dsr, pbo=pbo),  # from liq-validation
+    cost_stress={"spy_qqq_stress_3x_v1": stressed_net},
+)
+write_metrics_panel_csv(panel, run_dir / "metrics_panel.csv")
+```
+
+Inference statistics (bootstrap CI, clustered t-stats, DSR, PBO/null
+percentile) are computed with `liq.validation.stats` and passed in — this
+package stays dependency-free.
+
 ## API Reference
 
 ### `summarize_qa(qa_result)`

@@ -26,6 +26,7 @@ from liq.metrics.performance import (
 )
 from liq.metrics.prediction import summarize_classification, summarize_regression
 from liq.metrics.qa import QAResultLike, summarize_qa
+from liq.metrics.selector import SelectorEconomics, compute_selector_economics
 from liq.metrics.six_curves import SixCurveInputs, SixCurveResult, compute_six_curves
 from liq.metrics.tax_curves import (
     CurveFPeriod,
@@ -54,6 +55,7 @@ __all__ = [
     "summarize_classification",
     "summarize_regression",
     "QAResultLike",
+    "SelectorEconomics",
     "ComparisonResult",
     "PerformanceAnalyzer",
     "PerformanceReport",
@@ -61,6 +63,7 @@ __all__ = [
     "SixCurveInputs",
     "SixCurveResult",
     "compute_six_curves",
+    "compute_selector_economics",
     "TaxRates",
     "TaxPolicy",
     "RealizedTaxEvent",

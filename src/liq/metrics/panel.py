@@ -106,6 +106,14 @@ class MetricsPanel:
     cost_stress: Mapping[str, float] | None = None
 
 
+@dataclass(frozen=True)
+class RawAndResidualizedPanels:
+    """A raw metrics panel paired with its benchmark-residualized twin."""
+
+    raw: MetricsPanel
+    residualized: MetricsPanel
+
+
 def _quantile(sorted_values: list[float], p: float) -> float:
     """Linear-interpolation quantile of pre-sorted values."""
     index = p * (len(sorted_values) - 1)
@@ -254,6 +262,89 @@ def compute_metrics_panel(
         portfolio_incremental_sharpe=portfolio_incremental_sharpe,
         cost_stress=dict(cost_stress) if cost_stress is not None else None,
     )
+
+
+def compute_raw_and_residualized_panels(
+    *,
+    trade_returns_net: Sequence[float],
+    trade_returns_gross: Sequence[float],
+    daily_returns: Sequence[float],
+    residualized_trade_returns_net: Sequence[float],
+    residualized_trade_returns_gross: Sequence[float],
+    residualized_daily_returns: Sequence[float],
+    benchmark_daily_returns: Sequence[float] | None = None,
+    trade_events: Sequence[str] | None = None,
+    raw_inference: InferenceInputs | None = None,
+    residualized_inference: InferenceInputs | None = None,
+    raw_cost_stress: Mapping[str, float] | None = None,
+    residualized_cost_stress: Mapping[str, float] | None = None,
+    raw_portfolio_incremental_sharpe: float | None = None,
+    residualized_portfolio_incremental_sharpe: float | None = None,
+) -> RawAndResidualizedPanels:
+    """Compute paired panels from raw and already-residualized outcomes.
+
+    Residualization remains in the research layer, where event alignment and
+    the pre-registered SPY/sector/beta-twin choice are known. This dependency-
+    free metrics layer only enforces that raw and residualized net, gross, daily,
+    inference, cost-stress, and portfolio-attribution inputs remain distinct.
+    That prevents raw statistics or costs from being silently copied into the
+    residualized report.
+
+    Args:
+        trade_returns_net: Fractional net return per trade.
+        trade_returns_gross: Fractional gross return per trade (same order).
+        daily_returns: Fractional net daily portfolio returns.
+        residualized_trade_returns_net: Matched residualized net per trade.
+        residualized_trade_returns_gross: Matched residualized gross per trade.
+        residualized_daily_returns: Residualized daily portfolio returns.
+        benchmark_daily_returns: Matched benchmark (SPY or beta twin) daily
+            returns aligned to both daily series.
+        trade_events: Optional event id per trade (event-anchored arms).
+        raw_inference: Inference computed from the raw outcomes.
+        residualized_inference: Inference recomputed from residualized outcomes.
+        raw_cost_stress: Raw net return per cost-stress scenario id.
+        residualized_cost_stress: Residualized net return per scenario id.
+    """
+    if benchmark_daily_returns is None:
+        raise ValueError("residualization requires benchmark_daily_returns")
+    if len(trade_returns_net) != len(residualized_trade_returns_net):
+        raise ValueError(
+            "raw and residualized trade returns must align, got "
+            f"{len(trade_returns_net)} and {len(residualized_trade_returns_net)}"
+        )
+    if len(daily_returns) != len(residualized_daily_returns):
+        raise ValueError(
+            "raw and residualized daily returns must align, got "
+            f"{len(daily_returns)} and {len(residualized_daily_returns)}"
+        )
+    if (
+        raw_cost_stress is not None
+        and residualized_cost_stress is not None
+        and set(raw_cost_stress) != set(residualized_cost_stress)
+    ):
+        raise ValueError("raw and residualized cost-stress scenario ids must match")
+
+    raw = compute_metrics_panel(
+        trade_returns_net=trade_returns_net,
+        trade_returns_gross=trade_returns_gross,
+        daily_returns=daily_returns,
+        trade_events=trade_events,
+        benchmark_daily_returns=benchmark_daily_returns,
+        inference=raw_inference,
+        cost_stress=raw_cost_stress,
+        portfolio_incremental_sharpe=raw_portfolio_incremental_sharpe,
+    )
+    residualized = compute_metrics_panel(
+        trade_returns_net=residualized_trade_returns_net,
+        trade_returns_gross=residualized_trade_returns_gross,
+        daily_returns=residualized_daily_returns,
+        trade_events=trade_events,
+        benchmark_daily_returns=benchmark_daily_returns,
+        inference=residualized_inference,
+        cost_stress=residualized_cost_stress,
+        portfolio_incremental_sharpe=residualized_portfolio_incremental_sharpe,
+    )
+    return RawAndResidualizedPanels(raw=raw, residualized=residualized)
 
 
 def write_metrics_panel_csv(panel: MetricsPanel, path: Path) -> None:

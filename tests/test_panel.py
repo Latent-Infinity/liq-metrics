@@ -10,7 +10,9 @@ from liq.metrics.panel import (
     METRICS_PANEL_FIELDS,
     InferenceInputs,
     MetricsPanel,
+    RawAndResidualizedPanels,
     compute_metrics_panel,
+    compute_raw_and_residualized_panels,
     write_metrics_panel_csv,
 )
 
@@ -184,3 +186,74 @@ class TestCsvEmission:
         with path.open() as fh:
             values = {row["field"]: row["value"] for row in csv.DictReader(fh)}
         assert values["profit_factor"] == "inf"
+
+
+def _twin(**overrides: object) -> RawAndResidualizedPanels:
+    kwargs: dict = {
+        "trade_returns_net": TRADES_NET,
+        "trade_returns_gross": TRADES_GROSS,
+        "daily_returns": DAILY,
+        "residualized_trade_returns_net": [0.004, -0.002, 0.009, -0.006],
+        "residualized_trade_returns_gross": [0.006, 0.0, 0.011, -0.004],
+        "residualized_daily_returns": [0.002, -0.001, 0.003, -0.002, 0.001],
+        "benchmark_daily_returns": BENCH,
+    }
+    kwargs.update(overrides)
+    return compute_raw_and_residualized_panels(**kwargs)
+
+
+class TestRawAndResidualizedPanels:
+    def test_uses_independently_residualized_trade_and_daily_series(self) -> None:
+        twin = _twin()
+        assert twin.raw.n_trades == len(TRADES_NET)
+        assert twin.raw.n_days == len(DAILY)
+        assert twin.residualized.net_return == pytest.approx(0.005)
+        assert twin.residualized.gross_return == pytest.approx(0.013)
+        assert twin.residualized.n_days == len(DAILY)
+
+    def test_identity_inputs_leave_panels_equal(self) -> None:
+        twin = _twin(
+            residualized_trade_returns_net=TRADES_NET,
+            residualized_trade_returns_gross=TRADES_GROSS,
+            residualized_daily_returns=DAILY,
+            trade_events=["e1", "e1", "e2", "e3"],
+            raw_inference=InferenceInputs(deflated_sharpe=0.5, pbo=0.2),
+            residualized_inference=InferenceInputs(deflated_sharpe=0.5, pbo=0.2),
+            raw_cost_stress={"spy_qqq_stress_3x_v1": 0.004},
+            residualized_cost_stress={"spy_qqq_stress_3x_v1": 0.004},
+            raw_portfolio_incremental_sharpe=0.1,
+            residualized_portfolio_incremental_sharpe=0.1,
+        )
+        assert twin.raw == twin.residualized
+
+    def test_raw_inference_and_cost_stress_do_not_leak_into_residualized_panel(self) -> None:
+        twin = _twin(
+            raw_inference=InferenceInputs(deflated_sharpe=0.5),
+            raw_cost_stress={"spy_qqq_stress_3x_v1": 0.004},
+        )
+        assert twin.raw.deflated_sharpe == pytest.approx(0.5)
+        assert twin.residualized.deflated_sharpe is None
+        assert twin.raw.cost_stress == {"spy_qqq_stress_3x_v1": 0.004}
+        assert twin.residualized.cost_stress is None
+
+    def test_missing_benchmark_raises(self) -> None:
+        with pytest.raises(ValueError, match="benchmark"):
+            _twin(benchmark_daily_returns=None)
+
+    def test_raw_and_residualized_trade_sets_must_align(self) -> None:
+        with pytest.raises(ValueError, match="trade returns must align"):
+            _twin(
+                residualized_trade_returns_net=[0.004],
+                residualized_trade_returns_gross=[0.006],
+            )
+
+    def test_raw_and_residualized_daily_sets_must_align(self) -> None:
+        with pytest.raises(ValueError, match="daily returns must align"):
+            _twin(residualized_daily_returns=[0.002])
+
+    def test_raw_and_residualized_cost_scenarios_must_match(self) -> None:
+        with pytest.raises(ValueError, match="cost-stress scenario ids"):
+            _twin(
+                raw_cost_stress={"base": 0.004},
+                residualized_cost_stress={"stress": 0.001},
+            )

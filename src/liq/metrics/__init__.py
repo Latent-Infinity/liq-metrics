@@ -15,7 +15,9 @@ from liq.metrics.panel import (
     METRICS_PANEL_FIELDS,
     InferenceInputs,
     MetricsPanel,
+    RawAndResidualizedPanels,
     compute_metrics_panel,
+    compute_raw_and_residualized_panels,
     write_metrics_panel_csv,
 )
 from liq.metrics.performance import (
@@ -45,9 +47,11 @@ from liq.metrics.tax_curves import (
 
 __all__ = [
     "MetricsPanel",
+    "RawAndResidualizedPanels",
     "InferenceInputs",
     "METRICS_PANEL_FIELDS",
     "compute_metrics_panel",
+    "compute_raw_and_residualized_panels",
     "write_metrics_panel_csv",
     "summarize_qa",
     "summarize_drift",

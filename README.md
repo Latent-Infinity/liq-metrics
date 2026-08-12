@@ -102,7 +102,7 @@ panel = compute_metrics_panel(
     trade_returns_net=net_trades,
     trade_returns_gross=gross_trades,
     daily_returns=daily,
-    benchmark_daily_returns=spy_daily,          # raw AND residualized reporting
+    benchmark_daily_returns=spy_daily,          # alpha/beta attribution
     inference=InferenceInputs(deflated_sharpe=dsr, pbo=pbo),  # from liq-validation
     cost_stress={"spy_qqq_stress_3x_v1": stressed_net},
 )
@@ -112,6 +112,30 @@ write_metrics_panel_csv(panel, run_dir / "metrics_panel.csv")
 Inference statistics (bootstrap CI, clustered t-stats, DSR, PBO/null
 percentile) are computed with `liq.validation.stats` and passed in — this
 package stays dependency-free.
+
+To satisfy paired raw/residual reporting without mixing evidence between the
+two panels, residualize in the research layer and supply both aligned outcome
+sets explicitly:
+
+```python
+from liq.metrics import compute_raw_and_residualized_panels
+
+panels = compute_raw_and_residualized_panels(
+    trade_returns_net=raw_net,
+    trade_returns_gross=raw_gross,
+    daily_returns=raw_daily,
+    residualized_trade_returns_net=residual_net,
+    residualized_trade_returns_gross=residual_gross,
+    residualized_daily_returns=residual_daily,
+    benchmark_daily_returns=spy_daily,
+    raw_inference=raw_inference,
+    residualized_inference=residual_inference,
+)
+```
+
+Raw and residualized inference, cost-stress, and portfolio-attribution inputs
+are separate by design; the helper never copies raw evidence into the
+residualized panel.
 
 ## API Reference
 

@@ -57,6 +57,7 @@ class TaxPolicy:
     rates: TaxRates
     terminal_assumption: TerminalAssumption = "hold_forever"
     no_tax_smoke: bool = False
+    annual_loss_deduction_limit: Decimal | None = None
 
 
 @dataclass(frozen=True)
@@ -125,14 +126,88 @@ def realized_tax(
     period_end: date | None = None,
 ) -> Decimal:
     """Apply policy rates to realized events inside optional inclusive bounds."""
+    selected = [
+        event
+        for event in events
+        if (period_start is None or event.event_date >= period_start)
+        and (period_end is None or event.event_date <= period_end)
+    ]
+    if policy.no_tax_smoke:
+        return Decimal("0.00")
+    if policy.annual_loss_deduction_limit is not None:
+        return _realized_tax_with_annual_loss_limit(
+            selected,
+            policy,
+            period_start=period_start,
+            period_end=period_end,
+        )
     total = Decimal("0")
-    for event in events:
-        if period_start is not None and event.event_date < period_start:
-            continue
-        if period_end is not None and event.event_date > period_end:
-            continue
+    for event in selected:
         total += event_tax(event, policy)
     return _money(total)
+
+
+def _realized_tax_with_annual_loss_limit(
+    events: list[RealizedTaxEvent],
+    policy: TaxPolicy,
+    *,
+    period_start: date | None,
+    period_end: date | None,
+) -> Decimal:
+    limit = policy.annual_loss_deduction_limit
+    assert limit is not None
+    if limit < 0:
+        raise ValueError("annual_loss_deduction_limit must be non-negative")
+    if not events and (period_start is None or period_end is None):
+        return Decimal("0.00")
+    first_year = (
+        period_start.year if period_start is not None else min(e.event_date.year for e in events)
+    )
+    last_year = (
+        period_end.year if period_end is not None else max(e.event_date.year for e in events)
+    )
+    by_year: dict[int, list[RealizedTaxEvent]] = {}
+    for event in events:
+        by_year.setdefault(event.event_date.year, []).append(event)
+
+    short_carry = Decimal("0")
+    long_carry = Decimal("0")
+    total_tax = Decimal("0")
+    for year in range(first_year, last_year + 1):
+        short_net = short_carry
+        long_net = long_carry
+        for event in by_year.get(year, []):
+            if event.character == "short_term":
+                short_net += event.amount
+            elif event.character == "long_term":
+                long_net += event.amount
+            elif event.character != "wash_sale_disallowed_loss":
+                total_tax += event.amount * _rate_for_event(event.character, policy.rates)
+
+        if short_net < 0 < long_net:
+            offset = min(-short_net, long_net)
+            short_net += offset
+            long_net -= offset
+        elif long_net < 0 < short_net:
+            offset = min(-long_net, short_net)
+            long_net += offset
+            short_net -= offset
+
+        if short_net > 0:
+            total_tax += short_net * policy.rates.short_term
+            short_net = Decimal("0")
+        if long_net > 0:
+            total_tax += long_net * policy.rates.long_term
+            long_net = Decimal("0")
+
+        deduction = min(limit, -short_net - long_net)
+        if deduction > 0:
+            total_tax -= deduction * policy.rates.short_term
+            short_used = min(deduction, -short_net)
+            short_net += short_used
+            long_net += deduction - short_used
+        short_carry, long_carry = short_net, long_net
+    return _money(total_tax)
 
 
 def mark_to_market_tax(

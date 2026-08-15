@@ -16,6 +16,7 @@ from liq.metrics.tax_curves import (
     compute_curve_f_periods,
     event_tax,
     mark_to_market_tax,
+    realized_tax,
 )
 
 
@@ -160,3 +161,44 @@ def test_unrealized_losses_create_liquidation_tax_benefit() -> None:
     positions = (OpenTaxPosition("INTC", Decimal("10000.00"), Decimal("9000.00"), "short_term"),)
 
     assert mark_to_market_tax(positions, _policy()) == Decimal("-370.00")
+
+
+def test_annual_loss_limit_nets_character_and_carries_forward() -> None:
+    policy = TaxPolicy(
+        rates=TaxRates(
+            short_term=Decimal("0.40"),
+            long_term=Decimal("0.20"),
+            qualified_dividend=Decimal("0.20"),
+            nonqualified_dividend=Decimal("0.40"),
+        ),
+        annual_loss_deduction_limit=Decimal("3000"),
+    )
+    events = (
+        RealizedTaxEvent(date(2024, 1, 1), Decimal("-10000"), "short_term"),
+        RealizedTaxEvent(date(2025, 1, 1), Decimal("1000"), "long_term"),
+    )
+
+    assert realized_tax(
+        events,
+        policy,
+        period_start=date(2024, 1, 1),
+        period_end=date(2025, 12, 31),
+    ) == Decimal("-2400.00")
+
+
+def test_annual_loss_limit_preserves_dividend_tax() -> None:
+    policy = TaxPolicy(
+        rates=TaxRates(
+            short_term=Decimal("0.40"),
+            long_term=Decimal("0.20"),
+            qualified_dividend=Decimal("0.20"),
+            nonqualified_dividend=Decimal("0.40"),
+        ),
+        annual_loss_deduction_limit=Decimal("3000"),
+    )
+    events = (
+        RealizedTaxEvent(date(2024, 1, 1), Decimal("1000"), "short_term"),
+        RealizedTaxEvent(date(2024, 2, 1), Decimal("-400"), "long_term"),
+        RealizedTaxEvent(date(2024, 3, 1), Decimal("100"), "qualified_dividend"),
+    )
+    assert realized_tax(events, policy) == Decimal("260.00")

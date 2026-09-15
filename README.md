@@ -183,6 +183,21 @@ def process_qa(result: QAResultLike) -> None:
     ...
 ```
 
+## Dividend receivables
+
+`liq.metrics.entitlements` provides immutable `CashRates` and `Entitlement` facts
+and a composable `EntitlementBook`. Upstream callers supply verified eligibility,
+held-unit basis, legal-units conversion, explicit gross/net rates, UTC clocks and
+provenance. Missing rates remain unavailable; no tax, fee or FX value is inferred.
+
+Accrual must occur at the effective entitlement timestamp and returns zero cash
+movement. Late corrections are unsupported. Known receivables contribute to `value(at=...)`
+until explicit settlement, including after a sale or at study end. Settlement returns
+the amount the cash ledger must credit exactly once. Duplicate accrual/settlement is
+rejected, and timestamped history preserves past valuations. Currency/basis mismatch
+or unavailable required facts raise `IncompleteEntitlements` with action identities.
+The component owns no cash or positions and does not authorize source admission.
+
 ## Development
 
 ```bash
